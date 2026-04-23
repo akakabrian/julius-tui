@@ -210,12 +210,3 @@ def style_for(klass: str) -> str:
     return f"{fg} on {bg}"
 
 
-# ---- Class lookup for a tile ------------------------------------------
-
-def classify(bits: int, btype: int) -> str:
-    """Decide which class the renderer should show for a tile.
-    Buildings beat terrain, but road + garden show through even over
-    TERRAIN_BUILDING in case that bit is set as part of a footprint."""
-    if btype != sim.BUILDING_NONE:
-        return building_class(btype)
-    return terrain_class(bits)

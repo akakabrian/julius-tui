@@ -27,8 +27,10 @@ month per ~5 seconds, which feels right for a terminal pace.
 
 from __future__ import annotations
 
+import json
 import random
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import Optional
 
 # ---- Map dimensions ---------------------------------------------------
@@ -51,8 +53,6 @@ TERRAIN_ROAD = 0x040
 TERRAIN_AQUEDUCT = 0x100
 TERRAIN_MEADOW = 0x800
 TERRAIN_RUBBLE = 0x1000
-TERRAIN_FOUNTAIN_RANGE = 0x2000
-TERRAIN_WELL_RANGE = 0x4000  # Julius uses reservoir_range; we repurpose
 TERRAIN_CLEARABLE = (TERRAIN_TREE | TERRAIN_SHRUB | TERRAIN_GARDEN
                      | TERRAIN_ROAD | TERRAIN_BUILDING | TERRAIN_RUBBLE
                      | TERRAIN_AQUEDUCT)
@@ -474,7 +474,9 @@ class Sim:
         self._add_terrain(x, y, TERRAIN_BUILDING)
         self.building_at[self._idx(x, y)] = bid
         # Tents start empty — population trickles in via monthly growth.
-        self.buildings[bid].house_population = 0  # type: ignore[union-attr]
+        b = self.buildings[bid]
+        assert b is not None  # just allocated
+        b.house_population = 0
         self.city.treasury -= _COST[BUILDING_HOUSE_VACANT_LOT]
         return TOOLRESULT_OK
 
@@ -673,3 +675,84 @@ class Sim:
             "rating_peace": self.city.rating_peace,
             "rating_favor": self.city.rating_favor,
         }
+
+    # --- save / load ---------------------------------------------------
+
+    # Schema version for forward-compatibility. Bump on any breaking
+    # shape change (new required field, renamed key, etc.).
+    SAVE_VERSION = 1
+
+    def to_dict(self) -> dict:
+        """Serialize full sim state to a JSON-safe dict.
+        Terrain is stored as a hex string (2 bytes per cell) to keep the
+        file compact; buildings are a list of dataclass dicts with a
+        None-entry sentinel for destroyed slots."""
+        return {
+            "version": self.SAVE_VERSION,
+            "scenario": self._scenario,
+            "map_w": MAP_W,
+            "map_h": MAP_H,
+            "city": asdict(self.city),
+            "terrain": bytes(self.terrain).hex(),
+            "building_at": list(self.building_at),
+            "buildings": [asdict(b) if b is not None else None
+                          for b in self.buildings],
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Sim":
+        """Reconstruct a Sim from to_dict() output. Rebuilds the
+        service-coverage mask from scratch rather than serialising it —
+        cheap and avoids schema drift on that grid."""
+        version = data.get("version", 0)
+        if version != cls.SAVE_VERSION:
+            raise ValueError(
+                f"save version mismatch: file={version} "
+                f"expected={cls.SAVE_VERSION}"
+            )
+        if data.get("map_w") != MAP_W or data.get("map_h") != MAP_H:
+            raise ValueError(
+                f"save map size {data.get('map_w')}x{data.get('map_h')} "
+                f"does not match runtime {MAP_W}x{MAP_H}"
+            )
+        s = cls.__new__(cls)
+        s.rng = random.Random()
+        s._scenario = data.get("scenario", "fertilis")
+        city_d = data["city"]
+        s.city = City(
+            name=city_d.get("name", "Roma Nova"),
+            treasury=city_d.get("treasury", 0),
+            tax_rate=city_d.get("tax_rate", 7),
+            month=city_d.get("month", 0),
+            year=city_d.get("year", -50),
+            sub_tick=city_d.get("sub_tick", 0),
+            population=city_d.get("population", 0),
+            rating_culture=city_d.get("rating_culture", 0),
+            rating_prosperity=city_d.get("rating_prosperity", 0),
+            rating_peace=city_d.get("rating_peace", 50),
+            rating_favor=city_d.get("rating_favor", 50),
+            message_log=list(city_d.get("message_log", [])),
+        )
+        s.terrain = bytearray(bytes.fromhex(data["terrain"]))
+        if len(s.terrain) != MAP_W * MAP_H * 2:
+            raise ValueError("terrain blob has wrong length")
+        s.building_at = list(data["building_at"])
+        s.buildings = [
+            Building(**b) if b is not None else None
+            for b in data["buildings"]
+        ]
+        s.service_mask = bytearray(MAP_W * MAP_H)
+        s.map_serial = 0
+        s._recompute_service_coverage()
+        return s
+
+    def save_to(self, path: str | Path) -> Path:
+        p = Path(path).expanduser()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(self.to_dict()))
+        return p
+
+    @classmethod
+    def load_from(cls, path: str | Path) -> "Sim":
+        p = Path(path).expanduser()
+        return cls.from_dict(json.loads(p.read_text()))

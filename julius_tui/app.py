@@ -8,6 +8,7 @@ our pure-Python Sim and Caesar III-flavoured tool set.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from rich.segment import Segment
 from rich.style import Style
@@ -373,6 +374,8 @@ class JuliusApp(App):
         Binding("t", "tutorial", "Tutorial"),
         Binding("l", "legend", "Legend"),
         Binding("o", "cycle_overlay", "Overlay"),
+        Binding("f2", "save_game", "Save"),
+        Binding("f3", "load_game", "Load"),
         Binding("question_mark", "help", "Help"),
         # priority=True so arrow keys and enter aren't consumed by the
         # scrollable MapView.
@@ -583,6 +586,45 @@ class JuliusApp(App):
 
     def action_legend(self) -> None:
         self.push_screen(LegendScreen())
+
+    # --- save / load ---------------------------------------------------
+
+    SAVE_PATH = Path.home() / ".julius_tui_save.json"
+
+    def action_save_game(self) -> None:
+        try:
+            p = self.sim.save_to(self.SAVE_PATH)
+        except OSError as e:
+            self.flash_status(f"[red]✗ save failed:[/] {e}")
+            return
+        self.flash_status(f"[green]✓ saved[/] → {p}")
+        self.log_msg(f"Game saved to [bold]{p}[/]", level="success")
+
+    def action_load_game(self) -> None:
+        if not self.SAVE_PATH.exists():
+            self.flash_status("[red]✗ no save file[/]")
+            return
+        try:
+            new_sim = sim.Sim.load_from(self.SAVE_PATH)
+        except (ValueError, OSError, KeyError) as e:
+            self.flash_status(f"[red]✗ load failed:[/] {e}")
+            return
+        # Swap in the restored sim. Widgets keep a reference to the
+        # *original* Sim object, so we rebind them in-place.
+        self.sim = new_sim
+        self.map_view.sim = new_sim
+        self.status_panel.sim = new_sim
+        self.ratings_panel.sim = new_sim
+        self.status_panel._last_snapshot = None
+        self.ratings_panel._last_snapshot = None
+        self.map_view._last_map_serial = -1
+        self.map_view.refresh_all_tiles()
+        self.status_panel.refresh_panel()
+        self.ratings_panel.refresh_panel()
+        self.update_header()
+        self.flash_status(f"[green]✓ loaded[/] ← {self.SAVE_PATH}")
+        self.log_msg(f"Game loaded from [bold]{self.SAVE_PATH}[/]",
+                     level="success")
 
     def action_cycle_overlay(self) -> None:
         """Cycle through service-coverage overlays. Caesar III's overlay

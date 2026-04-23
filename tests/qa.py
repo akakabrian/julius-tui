@@ -321,6 +321,22 @@ async def s_overlay_cycle(app, pilot):
     assert set(seen) >= set(modes), f"missing modes: {set(modes) - set(seen)}"
 
 
+async def s_save_load_roundtrip(app, pilot):
+    """Sim.to_dict/from_dict preserves terrain, buildings, treasury."""
+    spot = await find_clear(app)
+    assert spot is not None
+    assert app.sim.do_tool(sim.BUILDING_ROAD, *spot) == sim.TOOLRESULT_OK
+    assert app.sim.place_house(spot[0] + 1, spot[1]) == sim.TOOLRESULT_OK
+    treasury_before = app.sim.city.treasury
+    buildings_before = app.sim.building_count
+    blob = app.sim.to_dict()
+    restored = sim.Sim.from_dict(blob)
+    assert restored.city.treasury == treasury_before
+    assert restored.building_count == buildings_before
+    rbits, _ = restored.get_tile(*spot)
+    assert rbits & sim.TERRAIN_ROAD, "road lost in save/load roundtrip"
+
+
 async def s_mouse_click_places(app, pilot):
     """A left-click on the map selects the tile and applies the current tool."""
     spot = await find_clear(app)
@@ -366,6 +382,7 @@ SCENARIOS: list[Scenario] = [
     Scenario("water_animates", s_water_animates),
     Scenario("house_evolution_with_services", s_house_evolution_with_services),
     Scenario("overlay_cycle", s_overlay_cycle),
+    Scenario("save_load_roundtrip", s_save_load_roundtrip),
     Scenario("mouse_click_places", s_mouse_click_places),
 ]
 

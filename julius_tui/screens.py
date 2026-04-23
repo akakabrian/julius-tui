@@ -33,6 +33,9 @@ _HELP_TEXT = """[bold yellow]Julius TUI — Keybindings[/]
 
 [bold]Game[/]
   p           pause / resume
+  o           cycle service overlay
+  F2          save game
+  F3          load game
   t           tutorial
   l           legend
   ?           this help
