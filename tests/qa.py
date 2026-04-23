@@ -308,6 +308,19 @@ async def s_water_animates(app, pilot):
     assert a != b, f"water glyph did not change: {a!r} == {b!r}"
 
 
+async def s_overlay_cycle(app, pilot):
+    """Pressing 'o' must cycle through overlay modes and wrap."""
+    modes = ["off", "water", "food", "religion", "entertain"]
+    start = app.map_view.overlay_mode
+    seen = [start]
+    for _ in range(len(modes)):
+        await pilot.press("o")
+        await pilot.pause()
+        seen.append(app.map_view.overlay_mode)
+    assert seen[-1] == start, f"overlay didn't wrap: {seen}"
+    assert set(seen) >= set(modes), f"missing modes: {set(modes) - set(seen)}"
+
+
 async def s_mouse_click_places(app, pilot):
     """A left-click on the map selects the tile and applies the current tool."""
     spot = await find_clear(app)
@@ -352,6 +365,7 @@ SCENARIOS: list[Scenario] = [
     Scenario("out_of_bounds_rejected", s_out_of_bounds_rejected),
     Scenario("water_animates", s_water_animates),
     Scenario("house_evolution_with_services", s_house_evolution_with_services),
+    Scenario("overlay_cycle", s_overlay_cycle),
     Scenario("mouse_click_places", s_mouse_click_places),
 ]
 

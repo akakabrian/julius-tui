@@ -106,6 +106,18 @@ class MapView(ScrollView):
         self._unknown_style = Style.parse("bold rgb(255,0,255) on black")
         self._anim_frame = 0
         self._last_map_serial = -1
+        # Service overlay: "off" | "water" | "food" | "religion" |
+        # "entertain" | "education". When set, render_line dims the base
+        # glyph and tints by service coverage — the Caesar III overlay
+        # feel, reduced to terminal colours.
+        self.overlay_mode: str = "off"
+        self._overlay_tint = {
+            "water":     Style.parse("rgb(120,180,230) on rgb(12,22,35)"),
+            "food":      Style.parse("rgb(230,150,80) on rgb(30,22,10)"),
+            "religion":  Style.parse("rgb(240,230,140) on rgb(32,28,10)"),
+            "entertain": Style.parse("rgb(230,170,230) on rgb(28,18,32)"),
+        }
+        self._overlay_no = Style.parse("rgb(40,40,40) on rgb(10,10,10)")
 
     # --- animation -----------------------------------------------------
 
@@ -135,6 +147,13 @@ class MapView(ScrollView):
         run_chars: list[str] = []
         run_style: Style | None = None
 
+        # Overlay lookup — translate mode string to the service bit.
+        overlay_svc = {
+            "water": sim.SVC_WATER, "food": sim.SVC_FOOD,
+            "religion": sim.SVC_RELIGION, "entertain": sim.SVC_ENTERTAIN,
+            "education": sim.SVC_EDUCATION,
+        }.get(self.overlay_mode, 0)
+
         for x in range(start_x, end_x):
             bits, bid = s.get_tile(x, tile_y)
             if bid >= 0 and bid < len(s.buildings) and s.buildings[bid] is not None:
@@ -153,6 +172,19 @@ class MapView(ScrollView):
 
             if x == cx and tile_y == cy:
                 style = cursor_now
+            elif overlay_svc:
+                # Service overlay — paint covered tiles in the service
+                # tint, uncovered ones in near-black. Buildings keep
+                # their base style so the player can still see what's
+                # placed.
+                mask = s.service_mask[tile_y * sim.MAP_W + x]
+                if bid >= 0:
+                    style = styles.get(klass, unknown)
+                elif mask & overlay_svc:
+                    style = self._overlay_tint.get(self.overlay_mode,
+                                                   self._overlay_no)
+                else:
+                    style = self._overlay_no
             else:
                 style = styles.get(klass, unknown)
 
@@ -340,6 +372,7 @@ class JuliusApp(App):
         Binding("p", "toggle_pause", "Pause"),
         Binding("t", "tutorial", "Tutorial"),
         Binding("l", "legend", "Legend"),
+        Binding("o", "cycle_overlay", "Overlay"),
         Binding("question_mark", "help", "Help"),
         # priority=True so arrow keys and enter aren't consumed by the
         # scrollable MapView.
@@ -550,6 +583,16 @@ class JuliusApp(App):
 
     def action_legend(self) -> None:
         self.push_screen(LegendScreen())
+
+    def action_cycle_overlay(self) -> None:
+        """Cycle through service-coverage overlays. Caesar III's overlay
+        tradition: water → food → religion → entertain → off."""
+        modes = ["off", "water", "food", "religion", "entertain"]
+        cur = self.map_view.overlay_mode
+        nxt = modes[(modes.index(cur) + 1) % len(modes)] if cur in modes else "water"
+        self.map_view.overlay_mode = nxt
+        self.map_view.refresh()
+        self.flash_status(f"Overlay: [bold]{nxt}[/]")
 
     def on_tools_panel_selected(self, message: ToolsPanel.Selected) -> None:
         self.action_select_tool(str(message.index))
