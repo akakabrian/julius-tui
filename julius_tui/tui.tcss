@@ -1,0 +1,59 @@
+Screen {
+    background: #0a0a0a;
+}
+
+#body {
+    height: 1fr;
+}
+
+#map-col {
+    width: 3fr;
+    height: 1fr;
+}
+
+#side {
+    width: 38;
+    height: 1fr;
+    border-left: solid #443;
+}
+
+MapView {
+    height: 1fr;
+    border: solid #665;
+    background: #000;
+}
+
+#flash-bar {
+    height: 1;
+    background: #1a1610;
+    color: #eec;
+    padding: 0 1;
+}
+
+#log {
+    height: 10;
+    border: solid #443;
+    background: #05050a;
+}
+
+StatusPanel, RatingsPanel, ToolsPanel {
+    height: auto;
+    border: solid #443;
+    padding: 0 1;
+    background: #111;
+}
+
+StatusPanel { border-title-color: #d90; }
+RatingsPanel { border-title-color: #d90; }
+ToolsPanel   { border-title-color: #d90; }
+
+HelpScreen, TutorialScreen, LegendScreen {
+    align: center middle;
+}
+HelpScreen > Vertical, TutorialScreen > Vertical, LegendScreen > Vertical {
+    width: 80;
+    height: 30;
+    border: double #cc8;
+    background: #111;
+    padding: 1 2;
+}

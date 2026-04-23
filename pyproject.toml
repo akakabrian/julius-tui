@@ -1,0 +1,18 @@
+[project]
+name = "julius-tui"
+version = "0.1.0"
+description = "Terminal-native Caesar III-style city builder inspired by the Julius engine"
+requires-python = ">=3.10"
+dependencies = [
+    "textual>=0.80,<10",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["julius_tui"]
+
+[tool.setuptools.package-data]
+julius_tui = ["tui.tcss"]
