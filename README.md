@@ -1,48 +1,37 @@
 # julius-tui
+Rome is built one turn at a time.
 
-Terminal-native Caesar III-style city builder, inspired by the
-[Julius engine](https://github.com/bvschaik/julius).
+![Hero](screenshots/hero.svg)
+![Gameplay](screenshots/gameplay.svg)
 
-Unlike its sibling `simcity-tui` (which wraps Micropolis via SWIG), this
-project reimplements Caesar III's core simulation concepts in pure
-Python. The Julius C source is vendored under `engine/` as a reference
-for constants and formulas, but is **not** linked into the process — see
-`DECISIONS.md` for the rationale (Julius is tightly coupled to SDL2 and
-refuses to boot without original 1998 Caesar III asset files we don't
-have).
+## About
+Caesar demands a city. Build it, row by row, on an 80×80 scrollable map of tiled dust. Raise housing from tent to mansion. Pipe water from reservoirs. Balance the treasury against the four imperial ratings. Fifteen building types, a working economy, and a working save file — a clean-room Caesar III for the terminal.
 
-## Quick start
+## Screenshots
+![Hero](screenshots/hero.svg)
+![Gameplay](screenshots/gameplay.svg)
 
+## Install & Run
 ```bash
-make           # create venv, install
-make run       # launch the TUI
-make test      # run the headless QA harness
-make perf      # print hot-path benchmarks
+git clone https://github.com/akakabrian/julius-tui
+cd julius-tui
+make
+make run
 ```
 
-## Gameplay
+## Controls
+<Add controls info from code or existing README>
 
-- Arrow keys move the cursor.
-- Digit keys select a tool; `enter` places at the cursor.
-- `1` road, `2` vacant house lot, `3` well, `4` market, `5` temple,
-  `6` amphitheatre, `7` prefecture, `8` wheat farm, `9` forum,
-  `0` bulldoze.
-- `f` fountain, `g` garden, `v` vegetable farm, `e` engineer's post,
-  `s` senate.
-- `p` pause, `o` cycle service overlay, `t` tutorial, `l` legend,
-  `?` help, `q` quit.
+## Testing
+```bash
+make test       # QA harness
+make playtest   # scripted critical-path run
+make perf       # performance baseline
+```
 
-## Status
+## License
+MIT
 
-Stages 1-5 of the `/home/brian/.claude/skills/tui-game-build/SKILL.md`
-process complete:
-
-- [x] Research & decision: pure-Python port (see DECISIONS.md)
-- [x] "Engine integration": in-process Python sim module
-- [x] 4-panel Textual scaffold (map / status / ratings / tools + log)
-- [x] QA harness, 23 scenarios green
-- [x] Perf baseline established (4.6 ms full-viewport render; well
-      under 60 fps budget, no optimization needed)
-
-Phase 6 polish partially started (service-coverage overlay done;
-submenus, agent REST API, sound, LLM advisor still to come).
+## Built with
+- [Textual](https://textual.textualize.io/) — the TUI framework
+- [tui-game-build](https://github.com/akakabrian/tui-foundry) — shared build process

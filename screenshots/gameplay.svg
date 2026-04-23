@@ -1,0 +1,6 @@
+<?xml version='1.0'?>
+<svg xmlns='http://www.w3.org/2000/svg' width='1600' height='60' viewBox='0 0 1600 60'>
+  <title>julius-tui playtest exit=-1</title>
+  <desc>Raw ANSI output captured during pty playtest. See playtest_log.txt for the full stream (691227 bytes).</desc>
+  <text x='10' y='30' font-family='monospace' font-size='14'>julius-tui playtest — 17 steps, exit code -1</text>
+</svg>
