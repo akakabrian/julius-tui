@@ -12,7 +12,9 @@ Screen {
 }
 
 #side {
-    width: 38;
+    width: 1fr;
+    min-width: 24;
+    max-width: 32;
     height: 1fr;
     border-left: solid #443;
 }
